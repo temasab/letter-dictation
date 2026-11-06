@@ -79,7 +79,9 @@ You, Vee, Double you, Ex, Why, Zed): одиночную латинскую бу�
 - [Marck Script](https://fonts.google.com/specimen/Marck+Script) — русская пропись (по умолчанию);
 - [Bad Script](https://fonts.google.com/specimen/Bad+Script) — русский аккуратный почерк;
 - [Playwrite US Trad](https://fonts.google.com/specimen/Playwrite+US+Trad) — английская пропись с петлями (по умолчанию);
-- [Playwrite GB S](https://fonts.google.com/specimen/Playwrite+GB+S) — английская полупечатная.
+- [Playwrite GB S](https://fonts.google.com/specimen/Playwrite+GB+S) — английская полупечатная и печатные заглавные.
+
+Вариант «Обычный шрифт» использует системный Arial (или похожий шрифт устройства) — он не скачивается.
 
 Размер шрифта на экране проверки (`size` в `js/letters.js`) подобран так, чтобы строчная буква
 занимала рабочую строку разлиновки.

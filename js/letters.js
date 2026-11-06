@@ -38,6 +38,9 @@ const ALPHABETS = {
 // size подобран так, чтобы строчная буква занимала рабочую строку прописи (50 единиц SVG).
 // upperFamily/upperSize — отдельный шрифт для заглавных (печатные заглавные при прописных строчных);
 // upperSize подобран так, чтобы заглавная доходила до верхней линии прописи.
+// Обычный печатный шрифт из системы; высота строчных у Arial — 0,52 размера, то есть 50 единиц при 96.
+const PLAIN_FONT = "Arial, 'Helvetica Neue', Helvetica, sans-serif";
+
 const CURSIVE_FONTS = {
   ru: [
     {
@@ -50,6 +53,7 @@ const CURSIVE_FONTS = {
     },
     { id: 'marck-all', title: 'Всё прописью (Marck Script)', family: "'Propis Marck'", size: 135 },
     { id: 'bad', title: 'Bad Script (почерк)', family: "'Propis Bad'", size: 98 },
+    { id: 'arial', title: 'Обычный шрифт (Arial)', family: PLAIN_FONT, size: 96 },
   ],
   en: [
     {
@@ -61,6 +65,7 @@ const CURSIVE_FONTS = {
     },
     { id: 'trad-all', title: 'Всё прописью (Playwrite US Trad)', family: "'Propis Trad'", size: 96 },
     { id: 'gbs', title: 'Всё полупечатное (Playwrite GB S)', family: "'Propis GBS'", size: 96 },
+    { id: 'arial', title: 'Обычный шрифт (Arial)', family: PLAIN_FONT, size: 96 },
   ],
 };
 
