@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Буквенный диктант</title>
+  <meta name="description" content="Тренажёр для первоклассника: диктант русских и английских букв с озвучкой и проверкой по прописям.">
+  <meta name="theme-color" content="#3f6fd8">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="app">
+
+    <!-- Экран настройки диктанта -->
+    <section id="screen-setup" class="screen">
+      <header class="app-header">
+        <h1>Буквенный диктант</h1>
+        <p class="subtitle">Голос называет буквы — ребёнок пишет их в тетради, потом проверяем вместе.</p>
+      </header>
+
+      <div id="speech-warning" class="warning" hidden>
+        Этот браузер не умеет озвучивать текст. Откройте сайт в Chrome, Safari, Edge или Яндекс Браузере.
+      </div>
+
+      <section class="card">
+        <h2>Новый диктант</h2>
+
+        <div class="field">
+          <span class="field-label">Алфавит</span>
+          <div class="segmented" id="alphabet-switch" role="radiogroup">
+            <button type="button" data-alphabet="ru" role="radio">Русский</button>
+            <button type="button" data-alphabet="en" role="radio">Английский</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="segmented" id="pick-mode" role="radiogroup" aria-label="Что делает нажатие на букву">
+            <button type="button" data-mode="range" role="radio">Диапазон</button>
+            <button type="button" data-mode="exclude" role="radio">Исключить</button>
+          </div>
+          <p id="pick-hint" class="pick-hint"></p>
+          <div id="letter-chips" class="chips"></div>
+          <div class="chips-summary">
+            <span id="letters-count"></span>
+            <span class="summary-actions">
+              <button type="button" id="select-all" class="link-button">Весь алфавит</button>
+              <button type="button" id="reset-excluded" class="link-button">Вернуть исключённые</button>
+            </span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="dictation-name" class="field-label">Название (необязательно)</label>
+          <input id="dictation-name" type="text" maxlength="60" placeholder="Например: урок 12">
+        </div>
+
+        <button type="button" id="start-button" class="primary big">Начать диктант</button>
+      </section>
+
+      <details class="card settings" id="settings">
+        <summary><h2>Настройки</h2></summary>
+
+        <div class="field">
+          <label for="delay">Пауза между буквами: <output id="delay-out"></output></label>
+          <input id="delay" type="range" min="3" max="30" step="1">
+        </div>
+
+        <label class="checkbox">
+          <input id="repeat-twice" type="checkbox">
+          Повторять каждую букву дважды
+        </label>
+
+        <label class="checkbox">
+          <input id="limit-enabled" type="checkbox">
+          Ограничить количество букв
+        </label>
+        <div class="field limit-field">
+          <label for="limit-count">Букв в диктанте</label>
+          <input id="limit-count" type="number" min="1" max="33" step="1" inputmode="numeric">
+          <p class="hint">Случайные буквы из выбранных на главном экране, без повторов.</p>
+        </div>
+
+        <div class="field">
+          <label for="case-mode">Заглавная или строчная</label>
+          <select id="case-mode">
+            <option value="none">Не называть</option>
+            <option value="upper">Все заглавные</option>
+            <option value="lower">Все строчные</option>
+            <option value="mixed">Вперемешку</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="check-delay">Пауза при проверке: <output id="check-delay-out"></output></label>
+          <input id="check-delay" type="range" min="1" max="15" step="1">
+        </div>
+
+        <div class="field">
+          <label for="voice-source">Голос</label>
+          <div class="inline">
+            <select id="voice-source">
+              <option value="recorded">Записанный голос</option>
+              <option value="browser">Голос браузера</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Послушать весь алфавит</span>
+          <div class="inline">
+            <button type="button" class="secondary" data-preview-voice="ru">▶ Русский</button>
+            <button type="button" class="secondary" data-preview-voice="en">▶ Английский</button>
+          </div>
+        </div>
+
+        <div id="browser-voice-settings">
+          <div class="field">
+            <label for="rate">Скорость речи: <output id="rate-out"></output></label>
+            <input id="rate" type="range" min="0.5" max="1.3" step="0.1">
+          </div>
+
+          <div class="field">
+            <label for="voice-ru">Голос для русских букв</label>
+            <select id="voice-ru"></select>
+          </div>
+
+          <div class="field">
+            <label for="voice-en">Голос для английских букв</label>
+            <select id="voice-en"></select>
+          </div>
+
+          <p class="hint">Системные голоса на разных устройствах звучат по‑разному,
+            а в некоторых браузерах (например, Firefox) после каждой фразы слышен щелчок.</p>
+        </div>
+
+        <div class="field">
+          <label for="font-ru">Пропись для русских букв</label>
+          <select id="font-ru"></select>
+        </div>
+
+        <div class="field">
+          <label for="font-en">Пропись для английских букв</label>
+          <select id="font-en"></select>
+        </div>
+
+      </details>
+
+      <section class="card">
+        <h2>Сохранённые диктанты</h2>
+        <p id="history-empty" class="hint">Здесь появятся диктанты после запуска. Они хранятся только в этом браузере.</p>
+        <ul id="history-list" class="history"></ul>
+      </section>
+
+      <footer class="footer">
+        Шрифты: Marck Script, Bad Script, Playwrite — под лицензией
+        <a href="fonts/OFL-marckscript.txt">SIL Open Font License</a>.
+      </footer>
+    </section>
+
+    <!-- Экран диктанта -->
+    <section id="screen-dictation" class="screen" hidden>
+      <div class="dictation-box">
+        <p class="dictation-title" id="dictation-title"></p>
+
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="ring-bg" cx="60" cy="60" r="54"></circle>
+            <circle class="ring-fg" id="ring-fg" cx="60" cy="60" r="54"></circle>
+          </svg>
+          <div class="ring-center">
+            <div id="dictation-counter" class="counter"></div>
+            <div id="dictation-status" class="status"></div>
+          </div>
+        </div>
+
+        <div class="progress"><div id="dictation-progress" class="progress-bar"></div></div>
+
+        <div class="controls" id="dictation-controls">
+          <button type="button" id="dict-pause" class="secondary big">⏸ Пауза</button>
+          <button type="button" id="dict-repeat" class="secondary big">🔁 Повторить букву</button>
+          <button type="button" id="dict-stop" class="ghost">Прервать</button>
+        </div>
+
+        <div class="controls" id="dictation-finished" hidden>
+          <p class="done-text">Диктант окончен!</p>
+          <button type="button" id="dict-check" class="primary big">Проверить</button>
+          <button type="button" id="dict-home" class="ghost">На главную</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Экран проверки -->
+    <section id="screen-check" class="screen" hidden>
+      <header class="check-header">
+        <button type="button" id="check-home" class="ghost">← На главную</button>
+        <h2 id="check-title">Проверка</h2>
+      </header>
+
+      <div class="check-current">
+        <!-- Строка как в прописях: рабочая строка между линиями 120 и 170, наклон 65°. -->
+        <div class="copybook-wrap">
+          <span id="check-number" class="copybook-number"></span>
+          <svg class="copybook" viewBox="0 0 640 260" preserveAspectRatio="xMidYMid slice" aria-live="polite">
+            <defs>
+              <pattern id="slant" width="44" height="260" patternUnits="userSpaceOnUse" patternTransform="skewX(-25)">
+                <line x1="0" y1="0" x2="0" y2="260" class="slant-line"></line>
+              </pattern>
+            </defs>
+            <rect width="640" height="260" fill="url(#slant)"></rect>
+            <line x1="0" x2="640" y1="70" y2="70" class="rule light"></line>
+            <line x1="0" x2="640" y1="120" y2="120" class="rule"></line>
+            <line x1="0" x2="640" y1="170" y2="170" class="rule"></line>
+            <line x1="0" x2="640" y1="220" y2="220" class="rule light"></line>
+            <text id="check-letters" x="320" y="170" text-anchor="middle" class="copybook-letters"></text>
+          </svg>
+        </div>
+        <div class="controls">
+          <button type="button" id="check-prev" class="secondary" aria-label="Предыдущая буква">◀</button>
+          <button type="button" id="check-pause" class="secondary big">⏸ Пауза</button>
+          <button type="button" id="check-next" class="secondary" aria-label="Следующая буква">▶</button>
+          <button type="button" id="check-restart" class="ghost">Сначала</button>
+        </div>
+      </div>
+
+      <p class="hint center">Нажмите на любую букву, чтобы услышать её ещё раз.</p>
+      <ol id="check-grid" class="check-grid"></ol>
+    </section>
+
+  </main>
+
+  <script src="js/letters.js"></script>
+  <script src="js/speech.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
