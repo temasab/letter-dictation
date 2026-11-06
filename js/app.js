@@ -5,9 +5,10 @@ const DEFAULT_SETTINGS = {
   delay: 6,
   repeatTwice: true,
   checkDelay: 3,
+  revealDelay: 4,
   rate: 0.8,
   voice: { ru: '', en: '' },
-  font: { ru: 'marck', en: 'print-caps' },
+  font: { ru: 'print-caps', en: 'print-caps' },
   caseMode: 'none',
   voiceSource: 'recorded',
   limitEnabled: false,
@@ -28,8 +29,8 @@ let settings = Storage.loadSettings(DEFAULT_SETTINGS);
 // Проходит по элементам: произносит каждый (возможно, несколько раз), затем ждёт паузу.
 // Поддерживает паузу, перезапуск с любого элемента и остановку.
 class Sequencer {
-  constructor({ count, say, repeats = 1, delayMs, intro, onStep, onSpeaking, onTick, onDone }) {
-    Object.assign(this, { count, say, repeats, delayMs, intro, onStep, onSpeaking, onTick, onDone });
+  constructor({ count, say, repeats = 1, delayMs, intro, after, onStep, onSpeaking, onTick, onDone }) {
+    Object.assign(this, { count, say, repeats, delayMs, intro, after, onStep, onSpeaking, onTick, onDone });
     this.index = 0;
     this.paused = false;
     this.speaking = false;
@@ -73,6 +74,8 @@ class Sequencer {
         if (!(await this.waitWhilePaused(run))) return;
       } while (this.interrupted);
       if (!(await this.sleep(this.delayMs(), run, true))) return;
+      // Например, в тренировке — показ правильной буквы.
+      if (this.after && !(await this.after(i, run))) return;
     }
     if (this.alive(run)) {
       this.finished = true;
@@ -178,6 +181,7 @@ function phraseClip(key, text) {
 
 const PHRASES = {
   start: phraseClip('start', 'Начинаем диктант'),
+  trainStart: phraseClip('train-start', 'Начинаем тренировку'),
   end: phraseClip('end', 'Диктант окончен'),
   upper: phraseClip('upper', 'заглавная'),
   lower: phraseClip('lower', 'строчная'),
@@ -238,6 +242,16 @@ function speakItem(entry, i) {
 function preloadEntry(entry) {
   const files = entry.letters.map((upper) => letterAudioFile(entry.alphabet, upper));
   Recorded.preload([...files, ...Object.values(PHRASES).map((p) => p.file)]);
+}
+
+// Шрифт прописи задаётся переменными CSS на всей странице: им пользуются проверка и тренировка.
+function applyPropisFont(alphabetId) {
+  const font = cursiveFont(alphabetId);
+  const root = document.documentElement.style;
+  root.setProperty('--propis-font', font.family);
+  root.setProperty('--propis-font-upper', font.upperFamily || font.family);
+  root.setProperty('--propis-size', `${font.size}px`);
+  root.setProperty('--propis-upper-scale', String((font.upperSize || font.size) / font.size));
 }
 
 function cursiveFont(alphabetId) {
@@ -458,6 +472,8 @@ function renderSettings() {
   $('browser-voice-settings').hidden = settings.voiceSource !== 'browser';
   $('check-delay').value = settings.checkDelay;
   $('check-delay-out').textContent = `${settings.checkDelay} с`;
+  $('reveal-delay').value = settings.revealDelay;
+  $('reveal-delay-out').textContent = `${settings.revealDelay} с`;
   $('rate').value = settings.rate;
   $('rate-out').textContent = settings.rate.toFixed(1);
   Speech.rate = settings.rate;
@@ -533,6 +549,7 @@ function renderHistory() {
     const meta = document.createElement('div');
     meta.className = 'history-meta';
     const parts = [lettersWord(entry.letters.length), formatDate(entry.lastRunAt)];
+    if (entry.mode === 'training') parts.unshift('тренировка');
     if (CASE_MODES[entry.caseMode]) parts.push(CASE_MODES[entry.caseMode]);
     if (entry.runs > 1) parts.push(`запусков: ${entry.runs}`);
     if (entry.excluded.length) parts.push(`без ${entry.excluded.join(', ')}`);
@@ -596,7 +613,7 @@ function setPauseButton(button, paused) {
   button.textContent = paused ? '▶ Продолжить' : '⏸ Пауза';
 }
 
-function startNewDictation() {
+function startNewDictation(mode = 'dictation') {
   // Перемешиваем все выбранные и берём первые N — случайные буквы без повторов.
   const letters = shuffle(selectedLetters()).slice(0, dictationSize(selectedLetters().length));
   if (!letters.length) return;
@@ -610,6 +627,7 @@ function startNewDictation() {
     range: settings.range[id].slice(),
     excluded: settings.excluded[id].filter((u) => rangeIncludes(id, u)),
     letters,
+    mode,
     caseMode: settings.caseMode,
     cases: makeCases(settings.caseMode, letters.length),
     createdAt: Date.now(),
@@ -631,9 +649,22 @@ function startDictation(entry) {
   currentEntry = entry;
 
   const total = entry.letters.length;
-  $('dictation-title').textContent = entryTitle(entry);
+  const training = entry.mode === 'training';
+  $('dictation-title').textContent = training ? `Тренировка: ${entryTitle(entry)}` : entryTitle(entry);
   $('dictation-controls').hidden = false;
   $('dictation-finished').hidden = true;
+  $('done-text').textContent = training ? 'Тренировка окончена!' : 'Диктант окончен!';
+  $('dict-check').hidden = training;
+  $('dict-again').hidden = !training;
+  if (training) applyPropisFont(entry.alphabet);
+  // В тренировке после паузы на письмо круг сменяется правильной буквой.
+  const setRevealing = (on) => {
+    $('screen-dictation').classList.toggle('revealing', on);
+    $('train-reveal').hidden = !on;
+    $('train-next').hidden = !on;
+  };
+  let revealing = false;
+  setRevealing(false);
   $('dictation-progress').style.width = '0%';
   $('dictation-counter').innerHTML = '';
   setPauseButton($('dict-pause'), false);
@@ -646,7 +677,7 @@ function startDictation(entry) {
   const status = (text) => { $('dictation-status').textContent = text; };
   status('Приготовься');
   // Первая фраза звучит прямо из обработчика нажатия — иначе iOS не разрешит озвучку.
-  const greeting = say(PHRASES.start);
+  const greeting = say(training ? PHRASES.trainStart : PHRASES.start);
   let inIntro = true;
 
   const seq = new Sequencer({
@@ -659,8 +690,23 @@ function startDictation(entry) {
       if (!seq.alive(run)) return false;
       return seq.sleep(INTRO_MS, run, true);
     },
+    after: training
+      ? async (i, run) => {
+        showCopybookLetter($('train-copybook'), entry, i);
+        revealing = true;
+        setRevealing(true);
+        const ok = await seq.sleep(settings.revealDelay * 1000, run, true);
+        if (ok) {
+          revealing = false;
+          setRevealing(false);
+        }
+        return ok;
+      }
+      : null,
     onStep: (i) => {
       inIntro = false;
+      revealing = false;
+      setRevealing(false);
       $('dictation-counter').innerHTML = `<span class="counter-num">${i + 1}</span><span class="counter-total">из ${total}</span>`;
       $('dictation-progress').style.width = `${(i / total) * 100}%`;
     },
@@ -669,6 +715,10 @@ function startDictation(entry) {
       status('Слушай');
     },
     onTick: (left, all) => {
+      if (revealing) {
+        $('train-timer').style.width = `${(left / all) * 100}%`;
+        return;
+      }
       setRing(left / all);
       if (seq.paused) status('Пауза');
       else if (inIntro) status(`Приготовься… ${Math.ceil(left / 1000)}`);
@@ -680,8 +730,10 @@ function startDictation(entry) {
       $('dictation-finished').hidden = false;
       status('Готово');
       setRing(0);
+      revealing = false;
+      setRevealing(false);
       WakeLock.release();
-      say(PHRASES.end);
+      if (!training) say(PHRASES.end);
     },
   });
   activeSequencer = seq;
@@ -707,10 +759,7 @@ function togglePause(button) {
 function openCheck(entry) {
   stopActive();
   currentEntry = entry;
-  const font = cursiveFont(entry.alphabet);
-  $('screen-check').style.setProperty('--propis-font', font.family);
-  $('screen-check').style.setProperty('--propis-font-upper', font.upperFamily || font.family);
-  $('screen-check').style.setProperty('--propis-size', `${font.size}px`);
+  applyPropisFont(entry.alphabet);
   $('check-title').textContent = `Проверка: ${entryTitle(entry)}`;
 
   const grid = $('check-grid');
@@ -748,10 +797,7 @@ function openCheck(entry) {
     delayMs: () => settings.checkDelay * 1000,
     say: (i) => speakItem(entry, i),
     onStep: (i) => {
-      const upper = entry.letters[i];
-      const [, lower] = findLetter(entry.alphabet, upper);
-      $('check-number').textContent = `${i + 1}`;
-      renderCopybookLetters(entry, i, upper, lower);
+      showCopybookLetter($('check-copybook'), entry, i);
       grid.querySelectorAll('.check-cell').forEach((cell, j) => {
         cell.classList.toggle('current', j === i);
         cell.classList.toggle('passed', j < i);
@@ -774,9 +820,32 @@ function isDimmed(entry, i, letterCase) {
   return Boolean(dictated) && dictated !== letterCase;
 }
 
-// Заглавная и строчная — отдельными фрагментами с промежутком, чтобы не сливались.
-function renderCopybookLetters(entry, i, upper, lower) {
-  const text = $('check-letters');
+// Строка как в прописях: рабочая строка между линиями 120 и 170, наклон 65°.
+// key делает id узора уникальным — разлиновка есть и на проверке, и в тренировке.
+function mountCopybook(container, key) {
+  container.innerHTML = `
+    <span class="copybook-number"></span>
+    <svg class="copybook" viewBox="0 0 640 260" preserveAspectRatio="xMidYMid slice" aria-live="polite">
+      <defs>
+        <pattern id="slant-${key}" width="44" height="260" patternUnits="userSpaceOnUse" patternTransform="skewX(-25)">
+          <line x1="0" y1="0" x2="0" y2="260" class="slant-line"></line>
+        </pattern>
+      </defs>
+      <rect width="640" height="260" fill="url(#slant-${key})"></rect>
+      <line x1="0" x2="640" y1="70" y2="70" class="rule light"></line>
+      <line x1="0" x2="640" y1="120" y2="120" class="rule"></line>
+      <line x1="0" x2="640" y1="170" y2="170" class="rule"></line>
+      <line x1="0" x2="640" y1="220" y2="220" class="rule light"></line>
+      <text x="320" y="170" text-anchor="middle" class="copybook-letters"></text>
+    </svg>`;
+}
+
+// Показывает i‑ю букву диктанта: заглавная и строчная отдельными фрагментами, чтобы не сливались.
+function showCopybookLetter(container, entry, i) {
+  const upper = entry.letters[i];
+  const [, lower] = findLetter(entry.alphabet, upper);
+  container.querySelector('.copybook-number').textContent = `${i + 1}`;
+  const text = container.querySelector('.copybook-letters');
   text.textContent = '';
   for (const [char, letterCase, dx] of [[upper, 'upper', 0], [lower, 'lower', 36]]) {
     const span = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
@@ -917,6 +986,8 @@ function onImportInput() {
   $('import-title').textContent = entryTitle(entry);
   const parts = [lettersWord(entry.letters.length), entry.letters.join(' ')];
   if (CASE_MODES[entry.caseMode]) parts.splice(1, 0, CASE_MODES[entry.caseMode]);
+  if (entry.mode === 'training') parts.unshift('тренировка');
+  $('import-start').textContent = entry.mode === 'training' ? 'Начать тренировку' : 'Начать диктант';
   $('import-meta').textContent = parts.join(' · ');
   $('import-settings').textContent = settingsSummary(importData.settings);
 }
@@ -931,6 +1002,7 @@ function importedEntry(data) {
     range: [order[Math.min(...indexes)], order[Math.max(...indexes)]],
     excluded: [],
     letters: data.letters,
+    mode: data.mode,
     caseMode: data.caseMode,
     cases: data.cases,
     createdAt: Date.now(),
@@ -998,7 +1070,8 @@ function bindEvents() {
     saveSettings();
     renderChips();
   });
-  $('start-button').addEventListener('click', startNewDictation);
+  $('start-button').addEventListener('click', () => startNewDictation('dictation'));
+  $('train-button').addEventListener('click', () => startNewDictation('training'));
   $('import-button').addEventListener('click', () => openImport());
   $('settings-button').addEventListener('click', openSettings);
   for (const btn of document.querySelectorAll('#settings-dialog [role="tab"]')) {
@@ -1034,6 +1107,7 @@ function bindEvents() {
   };
   bindRange('delay', 'delay', Number);
   bindRange('check-delay', 'checkDelay', Number);
+  bindRange('reveal-delay', 'revealDelay', Number);
   bindRange('rate', 'rate', (v) => Math.round(Number(v) * 10) / 10);
   $('voice-source').addEventListener('change', () => {
     stopPreview();
@@ -1087,6 +1161,13 @@ function bindEvents() {
   });
   $('dict-stop').addEventListener('click', stopDictationAsk);
   $('dict-check').addEventListener('click', () => openCheck(currentEntry));
+  $('dict-again').addEventListener('click', () => startDictation(currentEntry));
+  $('train-next').addEventListener('click', () => {
+    const seq = activeSequencer;
+    if (!seq || seq.finished) return;
+    seq.start(seq.index + 1);
+    setPauseButton($('dict-pause'), false);
+  });
   $('dict-home').addEventListener('click', goHome);
 
   $('check-home').addEventListener('click', goHome);
@@ -1117,6 +1198,8 @@ function bindEvents() {
 }
 
 function init() {
+  mountCopybook($('check-copybook'), 'check');
+  mountCopybook($('train-copybook'), 'train');
   $('speech-warning').hidden = Speech.supported || settings.voiceSource === 'recorded';
   Speech.init(() => renderSettings());
   bindEvents();

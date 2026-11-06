@@ -36,10 +36,19 @@ const ALPHABETS = {
 
 // Шрифты-прописи для экрана проверки; первый в списке — по умолчанию.
 // size подобран так, чтобы строчная буква занимала рабочую строку прописи (50 единиц SVG).
-// upperFamily — отдельный шрифт для заглавных (в английском заглавные пишут печатными).
+// upperFamily/upperSize — отдельный шрифт для заглавных (печатные заглавные при прописных строчных);
+// upperSize подобран так, чтобы заглавная доходила до верхней линии прописи.
 const CURSIVE_FONTS = {
   ru: [
-    { id: 'marck', title: 'Marck Script (пропись)', family: "'Propis Marck'", size: 135 },
+    {
+      id: 'print-caps',
+      title: 'Печатные заглавные + пропись',
+      family: "'Propis Marck'",
+      upperFamily: "'Propis Print'",
+      size: 135,
+      upperSize: 134,
+    },
+    { id: 'marck-all', title: 'Всё прописью (Marck Script)', family: "'Propis Marck'", size: 135 },
     { id: 'bad', title: 'Bad Script (почерк)', family: "'Propis Bad'", size: 98 },
   ],
   en: [

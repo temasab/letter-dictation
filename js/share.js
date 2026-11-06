@@ -21,10 +21,11 @@ const Share = {
       data.c = entry.cases.map((c) => this.CASES[c] || '-').join('');
     }
     if (entry.name) data.n = entry.name;
+    if (entry.mode === 'training') data.t = 1;
     return this.toBase64Url(JSON.stringify(data));
   },
 
-  // Принимает код или ссылку целиком. Возвращает { alphabet, letters, cases, caseMode, name, settings }
+  // Принимает код или ссылку целиком. Возвращает { alphabet, letters, cases, caseMode, name, mode, settings }
   // или бросает Error с понятным пользователю текстом.
   decode(input) {
     let code = String(input || '').trim();
@@ -66,6 +67,7 @@ const Share = {
       cases,
       caseMode,
       name: typeof data.n === 'string' ? data.n.slice(0, 60) : '',
+      mode: data.t === 1 ? 'training' : 'dictation',
       settings: {
         delay: clamp(data.d, 3, 30, 6),
         repeatTwice: data.r === 1,

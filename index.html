@@ -58,7 +58,11 @@
           <input id="dictation-name" type="text" maxlength="60" placeholder="Например: урок 12">
         </div>
 
-        <button type="button" id="start-button" class="primary big">Начать диктант</button>
+        <div class="start-buttons">
+          <button type="button" id="start-button" class="primary big">Начать диктант</button>
+          <button type="button" id="train-button" class="secondary big">Тренировка</button>
+        </div>
+        <p class="hint">В тренировке после каждой буквы сразу показывается, как она пишется.</p>
       </section>
 
       <section class="card">
@@ -71,7 +75,7 @@
       </section>
 
       <footer class="footer">
-        Шрифты: Marck Script, Bad Script, Playwrite — под лицензией
+        Шрифты: Marck Script, Bad Script, Andika, Playwrite — под лицензией
         <a href="fonts/OFL-marckscript.txt">SIL Open Font License</a>.
       </footer>
     </section>
@@ -92,17 +96,26 @@
           </div>
         </div>
 
+        <!-- Тренировка: после паузы на письмо вместо круга показывается правильная буква -->
+        <div class="reveal" id="train-reveal" hidden>
+          <p class="reveal-caption">Проверь себя</p>
+          <div class="copybook-wrap" id="train-copybook"></div>
+          <div class="reveal-timer"><div id="train-timer"></div></div>
+        </div>
+
         <div class="progress"><div id="dictation-progress" class="progress-bar"></div></div>
 
         <div class="controls" id="dictation-controls">
+          <button type="button" id="train-next" class="primary big" hidden>Дальше →</button>
           <button type="button" id="dict-pause" class="secondary big">⏸ Пауза</button>
           <button type="button" id="dict-repeat" class="secondary big">🔁 Повторить букву</button>
           <button type="button" id="dict-stop" class="ghost">Прервать</button>
         </div>
 
         <div class="controls" id="dictation-finished" hidden>
-          <p class="done-text">Диктант окончен!</p>
+          <p class="done-text" id="done-text">Диктант окончен!</p>
           <button type="button" id="dict-check" class="primary big">Проверить</button>
+          <button type="button" id="dict-again" class="primary big" hidden>Пройти ещё раз</button>
           <button type="button" id="dict-home" class="ghost">На главную</button>
         </div>
       </div>
@@ -116,23 +129,7 @@
       </header>
 
       <div class="check-current">
-        <!-- Строка как в прописях: рабочая строка между линиями 120 и 170, наклон 65°. -->
-        <div class="copybook-wrap">
-          <span id="check-number" class="copybook-number"></span>
-          <svg class="copybook" viewBox="0 0 640 260" preserveAspectRatio="xMidYMid slice" aria-live="polite">
-            <defs>
-              <pattern id="slant" width="44" height="260" patternUnits="userSpaceOnUse" patternTransform="skewX(-25)">
-                <line x1="0" y1="0" x2="0" y2="260" class="slant-line"></line>
-              </pattern>
-            </defs>
-            <rect width="640" height="260" fill="url(#slant)"></rect>
-            <line x1="0" x2="640" y1="70" y2="70" class="rule light"></line>
-            <line x1="0" x2="640" y1="120" y2="120" class="rule"></line>
-            <line x1="0" x2="640" y1="170" y2="170" class="rule"></line>
-            <line x1="0" x2="640" y1="220" y2="220" class="rule light"></line>
-            <text id="check-letters" x="320" y="170" text-anchor="middle" class="copybook-letters"></text>
-          </svg>
-        </div>
+        <div class="copybook-wrap" id="check-copybook"></div>
         <div class="controls">
           <button type="button" id="check-prev" class="secondary" aria-label="Предыдущая буква">◀</button>
           <button type="button" id="check-pause" class="secondary big">⏸ Пауза</button>
@@ -194,6 +191,11 @@
         </section>
         <section class="tab-panel" id="tab-check" role="tabpanel" aria-labelledby="tab-btn-check">
           <p class="hint panel-hint">Проверка идёт по одной букве: голос называет её и показывает прописью.</p>
+
+          <div class="field">
+            <label for="reveal-delay">Тренировка — показ правильной буквы: <output id="reveal-delay-out"></output></label>
+            <input id="reveal-delay" type="range" min="1" max="15" step="1">
+          </div>
           <div class="field">
             <label for="check-delay">Пауза между буквами: <output id="check-delay-out"></output></label>
             <input id="check-delay" type="range" min="1" max="15" step="1">
