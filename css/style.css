@@ -67,8 +67,7 @@ h1, h2 { margin: 0; line-height: 1.2; }
 h1 { font-size: 30px; }
 h2 { font-size: 21px; }
 
-.app-header { margin: 8px 0 18px; }
-.subtitle { margin: 6px 0 0; color: var(--muted); }
+.app-header { margin: 4px 0 14px; }
 
 .card {
   background: var(--card);
@@ -139,9 +138,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .ghost:hover:not(:disabled) { background: #eceff6; color: var(--text); }
 .big { font-size: 20px; padding: 14px 24px; min-height: 56px; }
 .primary.big { width: 100%; }
-.start-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
-.start-buttons .big { flex: 1 1 200px; }
-.start-buttons + .hint { margin-top: 10px; }
+.start-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+.start-buttons .big { flex: none; width: auto; min-width: 240px; }
 .link-button { background: none; color: var(--primary); padding: 4px 0; min-height: 0; text-decoration: underline; }
 
 .inline { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -171,7 +169,13 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
   gap: 8px;
 }
-.pick-hint { margin: 10px 0; color: var(--muted); font-size: 15px; min-height: 1.45em; }
+.switch-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.switch-row { gap: 12px; }
+.switch-row .segmented { flex: none; }
+.switch-row .segmented button { flex: 1; padding-left: 18px; padding-right: 18px; }
+/* На компьютере — полные подписи, на телефоне — короткие. */
+.short-label { display: none; }
+.pick-hint { margin: 0 0 8px; color: var(--muted); font-size: 14px; min-height: 1.45em; }
 
 /* Буква вне диапазона — светлая, в диапазоне — синяя, исключённая — зачёркнутая. */
 .chip {
@@ -310,6 +314,18 @@ textarea { width: 100%; resize: vertical; font-size: 15px; font-family: ui-monos
 .history-item:first-child { border-top: none; padding-top: 0; }
 .history-info { flex: 1 1 260px; min-width: 0; }
 .history-title { font-weight: 600; }
+.mode-tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: 2px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+.mode-tag.training { background: #e3f4ec; color: #237a52; }
 .history-meta { color: var(--muted); font-size: 14px; }
 .history-letters {
   color: var(--muted);
@@ -323,6 +339,8 @@ textarea { width: 100%; resize: vertical; font-size: 15px; font-family: ui-monos
 .history-actions .icon { padding: 8px 10px; }
 
 .footer { color: var(--muted); font-size: 13px; text-align: center; margin-top: 24px; }
+.footer p { margin: 0 0 8px; }
+.footer .about { font-size: 15px; }
 .footer a { color: inherit; }
 
 /* ---------- Диктант ---------- */
@@ -371,6 +389,10 @@ textarea { width: 100%; resize: vertical; font-size: 15px; font-family: ui-monos
 
 /* Тренировка: правильная буква вместо круга-таймера */
 #screen-dictation.revealing .ring-wrap { display: none; }
+.done-summary { width: 100%; margin: 4px 0 8px; }
+.done-summary .check-grid { margin-top: 8px; }
+/* После тренировки круг и полоса прогресса не нужны — освобождаем место для списка букв. */
+#screen-dictation.summary .ring-wrap, #screen-dictation.summary .progress { display: none; }
 .reveal { width: 100%; max-width: 640px; }
 .reveal .copybook-wrap { margin-bottom: 0; }
 .reveal-caption { margin: 0 0 10px; font-size: 22px; font-weight: 700; color: var(--ok); }
@@ -446,10 +468,19 @@ textarea { width: 100%; resize: vertical; font-size: 15px; font-family: ui-monos
   .app { padding: 12px 12px 28px; }
   h1 { font-size: 26px; }
   .card { padding: 16px; }
-  .chips { grid-template-columns: repeat(6, 1fr); gap: 6px; }
-  .chip { min-height: 48px; font-size: 19px; }
+  .chips { grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .chip { min-height: 42px; font-size: 17px; border-radius: 10px; }
   .segmented { display: flex; }
-  .segmented button { flex: 1; padding: 10px 8px; }
+  .segmented button { flex: 1; padding: 8px 6px; font-size: 15px; min-height: 40px; }
+  .start-buttons { flex-wrap: nowrap; gap: 10px; }
+  .start-buttons .big { flex: 1 1 0; min-width: 0; padding-left: 10px; padding-right: 10px; font-size: 18px; min-height: 52px; }
+  .switch-row { gap: 8px; }
+  .switch-row #pick-mode { flex: 1 1 auto; }
+  .switch-row .segmented button { padding-left: 6px; padding-right: 6px; }
+  .short-label { display: inline; }
+  .long-label { display: none; }
+  .title-edit { margin-bottom: 8px; }
+  .chips-summary { margin-top: 8px; }
   .tabs button { font-size: 14px; padding: 8px 2px; }
   .settings-dialog form { padding: 18px 16px; }
   .check-grid { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }

@@ -19,7 +19,6 @@
           <h1>Буквенный диктант</h1>
           <button type="button" id="settings-button" class="settings-button" aria-label="Настройки" title="Настройки">⚙️</button>
         </div>
-        <p class="subtitle">Голос называет буквы — ребёнок пишет их в тетради, потом проверяем вместе.</p>
       </header>
 
       <div id="speech-warning" class="warning" hidden>
@@ -36,19 +35,19 @@
                   title="Задать название">✏️</button>
         </div>
 
-        <div class="field">
-          <span class="field-label">Алфавит</span>
-          <div class="segmented" id="alphabet-switch" role="radiogroup">
-            <button type="button" data-alphabet="ru" role="radio">Русский</button>
-            <button type="button" data-alphabet="en" role="radio">Английский</button>
+        <!-- Алфавит и режим выбора букв — в одну строку, чтобы карточка помещалась на экран телефона -->
+        <div class="switch-row">
+          <div class="segmented" id="alphabet-switch" role="radiogroup" aria-label="Алфавит">
+            <button type="button" data-alphabet="ru" role="radio" aria-label="Русский" title="Русский алфавит"><span class="long-label">Русский</span><span class="short-label">Абв</span></button>
+            <button type="button" data-alphabet="en" role="radio" aria-label="Английский" title="Английский алфавит"><span class="long-label">Английский</span><span class="short-label">Abc</span></button>
           </div>
-        </div>
-
-        <div class="field">
           <div class="segmented" id="pick-mode" role="radiogroup" aria-label="Что делает нажатие на букву">
             <button type="button" data-mode="range" role="radio">Диапазон</button>
             <button type="button" data-mode="exclude" role="radio">Исключить</button>
           </div>
+        </div>
+
+        <div class="field">
           <p id="pick-hint" class="pick-hint"></p>
           <div id="letter-chips" class="chips"></div>
           <div class="chips-summary">
@@ -61,24 +60,25 @@
         </div>
 
         <div class="start-buttons">
-          <button type="button" id="start-button" class="primary big">Начать диктант</button>
-          <button type="button" id="train-button" class="secondary big">Тренировка</button>
+          <button type="button" id="start-button" class="primary big" title="Начать диктант">▶ <span class="long-label">Начать диктант</span><span class="short-label">Диктант</span></button>
+          <button type="button" id="train-button" class="secondary big" title="Начать тренировку">▶ <span class="long-label">Начать тренировку</span><span class="short-label">Тренировка</span></button>
         </div>
-        <p class="hint">В тренировке после каждой буквы сразу показывается, как она пишется.</p>
       </section>
 
       <section class="card">
         <div class="card-header">
-          <h2>Сохранённые диктанты</h2>
+          <h2>Сохранённые занятия</h2>
           <button type="button" id="import-button" class="secondary">Открыть по коду</button>
         </div>
-        <p id="history-empty" class="hint">Здесь появятся диктанты после запуска. Они хранятся только в этом браузере.</p>
+        <p id="history-empty" class="hint">Здесь появятся диктанты и тренировки после запуска. Они хранятся только в этом браузере.</p>
         <ul id="history-list" class="history"></ul>
       </section>
 
       <footer class="footer">
-        Шрифты: Marck Script, Bad Script, Andika, Playwrite — под лицензией
-        <a href="fonts/OFL-marckscript.txt">SIL Open Font License</a>.
+        <p class="about">Голос называет буквы — ребёнок пишет их в тетради, потом проверяем вместе.
+          В тренировке после каждой буквы сразу показывается, как она пишется.</p>
+        <p>Шрифты: Marck Script, Bad Script, Andika, Playwrite — под лицензией
+          <a href="fonts/OFL-marckscript.txt">SIL Open Font License</a>.</p>
       </footer>
     </section>
 
@@ -118,6 +118,10 @@
         <div class="controls" id="dictation-finished" hidden>
           <p class="done-text" id="done-text">Диктант окончен!</p>
           <button type="button" id="dict-check" class="primary big">Проверить</button>
+          <div class="done-summary" id="done-summary" hidden>
+            <p class="hint center">Все буквы тренировки. Нажмите на букву, чтобы услышать её ещё раз.</p>
+            <ol id="done-grid" class="check-grid"></ol>
+          </div>
           <button type="button" id="dict-again" class="primary big" hidden>Пройти ещё раз</button>
           <button type="button" id="dict-home" class="ghost">На главную</button>
         </div>

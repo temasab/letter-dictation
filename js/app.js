@@ -381,10 +381,10 @@ function renderPickMode() {
     btn.setAttribute('aria-checked', String(active));
   }
   $('pick-hint').textContent = pickMode === 'exclude'
-    ? 'Нажмите на буквы, которые не нужно диктовать.'
+    ? 'Нажмите буквы, которые не нужно диктовать'
     : pendingStart === null
-      ? 'Нажмите первую букву диапазона, затем последнюю.'
-      : 'Теперь нажмите последнюю букву диапазона.';
+      ? 'Нажмите первую и последнюю букву'
+      : 'Теперь нажмите последнюю букву';
 }
 
 function onChipClick(i) {
@@ -587,11 +587,10 @@ function renderHistory() {
     info.className = 'history-info';
     const title = document.createElement('div');
     title.className = 'history-title';
-    title.textContent = entryTitle(entry);
+    renderEntryTitle(title, entry);
     const meta = document.createElement('div');
     meta.className = 'history-meta';
     const parts = [lettersWord(entry.letters.length), formatDate(entry.lastRunAt)];
-    if (entry.mode === 'training') parts.unshift('тренировка');
     if (CASE_MODES[entry.caseMode]) parts.push(CASE_MODES[entry.caseMode]);
     if (entry.runs > 1) parts.push(`запусков: ${entry.runs}`);
     if (entry.excluded.length) parts.push(`без ${entry.excluded.join(', ')}`);
@@ -618,8 +617,8 @@ function renderHistory() {
     addAction('↗ Поделиться', 'Ссылка или код этого диктанта', 'secondary', () => openShare(entry));
     addAction('🗑', 'Удалить', 'ghost icon', async () => {
       const ok = await confirmDialog({
-        title: 'Удалить диктант?',
-        text: `«${entryTitle(entry)}» исчезнет из списка сохранённых.`,
+        title: entry.mode === 'training' ? 'Удалить тренировку?' : 'Удалить диктант?',
+        text: `«${entryTitle(entry)}» исчезнет из сохранённых занятий.`,
         ok: 'Удалить',
         danger: true,
       });
@@ -632,6 +631,15 @@ function renderHistory() {
     li.append(info, actions);
     ul.appendChild(li);
   }
+}
+
+// Название занятия с меткой «Диктант» или «Тренировка».
+function renderEntryTitle(element, entry) {
+  const training = entry.mode === 'training';
+  const tag = document.createElement('span');
+  tag.className = `mode-tag${training ? ' training' : ''}`;
+  tag.textContent = training ? 'Тренировка' : 'Диктант';
+  element.replaceChildren(tag, document.createTextNode(entryTitle(entry)));
 }
 
 function reshuffled(entry) {
@@ -701,6 +709,8 @@ function startDictation(entry) {
   $('train-prev').hidden = !training;
   $('train-prev').disabled = true;
   $('dict-again').hidden = !training;
+  $('done-summary').hidden = true;
+  $('screen-dictation').classList.remove('summary');
   if (training) applyPropisFont(entry.alphabet);
   // В тренировке после паузы на письмо круг сменяется правильной буквой.
   const setRevealing = (on) => {
@@ -781,7 +791,8 @@ function startDictation(entry) {
       revealing = false;
       setRevealing(false);
       WakeLock.release();
-      if (!training) say(PHRASES.end);
+      if (training) showTrainingSummary(entry);
+      else say(PHRASES.end);
     },
   });
   activeSequencer = seq;
@@ -811,28 +822,9 @@ function openCheck(entry) {
   $('check-title').textContent = `Проверка: ${entryTitle(entry)}`;
 
   const grid = $('check-grid');
-  grid.innerHTML = '';
-  entry.letters.forEach((upper, i) => {
-    const [, lower] = findLetter(entry.alphabet, upper);
-    const li = document.createElement('li');
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'check-cell';
-    btn.innerHTML = `<span class="cell-number">${i + 1}</span><span class="cell-letters"></span>`;
-    const box = btn.querySelector('.cell-letters');
-    for (const [char, letterCase] of [[upper, 'upper'], [lower, 'lower']]) {
-      const span = document.createElement('span');
-      span.textContent = char;
-      span.className = letterCase;
-      span.classList.toggle('dim', isDimmed(entry, i, letterCase));
-      box.appendChild(span);
-    }
-    btn.addEventListener('click', () => {
-      seq.start(i);
-      setPauseButton($('check-pause'), false);
-    });
-    li.appendChild(btn);
-    grid.appendChild(li);
+  renderLetterGrid(grid, entry, (i) => {
+    seq.start(i);
+    setPauseButton($('check-pause'), false);
   });
 
   openScreen('check');
@@ -906,12 +898,46 @@ function showCopybookLetter(container, entry, i) {
   text.closest('svg').setAttribute('aria-label', `${upper} ${lower}`);
 }
 
+// Сетка всех букв занятия: номер и буква прописью, продиктованный регистр выделен.
+function renderLetterGrid(grid, entry, onSelect) {
+  grid.innerHTML = '';
+  entry.letters.forEach((upper, i) => {
+    const [, lower] = findLetter(entry.alphabet, upper);
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'check-cell';
+    btn.innerHTML = `<span class="cell-number">${i + 1}</span><span class="cell-letters"></span>`;
+    const box = btn.querySelector('.cell-letters');
+    for (const [char, letterCase] of [[upper, 'upper'], [lower, 'lower']]) {
+      const span = document.createElement('span');
+      span.textContent = char;
+      span.className = letterCase;
+      span.classList.toggle('dim', isDimmed(entry, i, letterCase));
+      box.appendChild(span);
+    }
+    btn.addEventListener('click', () => onSelect(i));
+    li.appendChild(btn);
+    grid.appendChild(li);
+  });
+}
+
 function checkJump(delta) {
   const seq = activeSequencer;
   if (!seq) return;
   const i = Math.min(Math.max(seq.index + delta, 0), seq.count - 1);
   seq.start(i);
   setPauseButton($('check-pause'), false);
+}
+
+// В конце тренировки — все буквы списком, как на проверке; нажатие повторяет букву голосом.
+function showTrainingSummary(entry) {
+  renderLetterGrid($('done-grid'), entry, (i) => {
+    $('done-grid').querySelectorAll('.check-cell').forEach((cell, j) => cell.classList.toggle('current', j === i));
+    sayAll(itemClips(entry, i));
+  });
+  $('done-summary').hidden = false;
+  $('screen-dictation').classList.add('summary');
 }
 
 // ---------- Окна (вместо системных confirm/alert) ----------
@@ -943,8 +969,8 @@ async function stopDictationAsk() {
     setPauseButton($('dict-pause'), true);
   }
   const ok = await confirmDialog({
-    title: 'Прервать диктант?',
-    text: 'Он останется в списке сохранённых — его можно будет начать заново.',
+    title: currentEntry?.mode === 'training' ? 'Прервать тренировку?' : 'Прервать диктант?',
+    text: 'Занятие останется в сохранённых — его можно будет начать заново.',
     ok: 'Прервать',
     cancel: 'Продолжить',
     danger: true,
@@ -1031,10 +1057,9 @@ function onImportInput() {
   $('import-start').disabled = !ok;
   if (!ok) return;
   const entry = importedEntry(importData);
-  $('import-title').textContent = entryTitle(entry);
+  renderEntryTitle($('import-title'), entry);
   const parts = [lettersWord(entry.letters.length), entry.letters.join(' ')];
   if (CASE_MODES[entry.caseMode]) parts.splice(1, 0, CASE_MODES[entry.caseMode]);
-  if (entry.mode === 'training') parts.unshift('тренировка');
   $('import-start').textContent = entry.mode === 'training' ? 'Начать тренировку' : 'Начать диктант';
   $('import-meta').textContent = parts.join(' · ');
   $('import-settings').textContent = settingsSummary(importData.settings);
