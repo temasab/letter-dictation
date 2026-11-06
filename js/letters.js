@@ -45,7 +45,7 @@ const CURSIVE_FONTS = {
   en: [
     {
       id: 'print-caps',
-      title: 'Заглавные печатные, строчные прописью',
+      title: 'Печатные заглавные + пропись',
       family: "'Propis Trad'",
       upperFamily: "'Propis GBS'",
       size: 96,

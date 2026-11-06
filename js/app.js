@@ -555,8 +555,15 @@ function renderHistory() {
     addAction('▶ Повторить', 'Тот же порядок букв', 'secondary', () => startDictation(entry));
     addAction('🔀 Перемешать', 'Те же буквы в новом порядке', 'secondary', () => startDictation(reshuffled(entry)));
     addAction('✓ Проверка', 'Сразу открыть проверку', 'secondary', () => openCheck(entry));
-    addAction('🗑', 'Удалить', 'ghost icon', () => {
-      if (confirm(`Удалить диктант «${entryTitle(entry)}»?`)) {
+    addAction('↗ Поделиться', 'Ссылка или код этого диктанта', 'secondary', () => openShare(entry));
+    addAction('🗑', 'Удалить', 'ghost icon', async () => {
+      const ok = await confirmDialog({
+        title: 'Удалить диктант?',
+        text: `«${entryTitle(entry)}» исчезнет из списка сохранённых.`,
+        ok: 'Удалить',
+        danger: true,
+      });
+      if (ok) {
         Storage.remove(entry.id);
         renderHistory();
       }
@@ -789,6 +796,149 @@ function checkJump(delta) {
   setPauseButton($('check-pause'), false);
 }
 
+// ---------- Окна (вместо системных confirm/alert) ----------
+
+// Открывает <dialog> и ждёт закрытия; результат — value нажатой кнопки ('' при Esc или клике мимо).
+function showDialog(dialog) {
+  return new Promise((resolve) => {
+    dialog.returnValue = '';
+    dialog.addEventListener('close', () => resolve(dialog.returnValue), { once: true });
+    dialog.showModal();
+  });
+}
+
+function confirmDialog({ title, text, ok = 'Да', cancel = 'Отмена', danger = false }) {
+  $('confirm-title').textContent = title;
+  $('confirm-text').textContent = text;
+  $('confirm-ok').textContent = ok;
+  $('confirm-cancel').textContent = cancel;
+  $('confirm-ok').classList.toggle('danger', danger);
+  return showDialog($('confirm-dialog')).then((value) => value === 'ok');
+}
+
+// «Прервать»: диктант встаёт на паузу, пока открыт вопрос.
+async function stopDictationAsk() {
+  const seq = activeSequencer;
+  const wasRunning = seq && !seq.paused && !seq.finished;
+  if (wasRunning) {
+    seq.pause();
+    setPauseButton($('dict-pause'), true);
+  }
+  const ok = await confirmDialog({
+    title: 'Прервать диктант?',
+    text: 'Он останется в списке сохранённых — его можно будет начать заново.',
+    ok: 'Прервать',
+    cancel: 'Продолжить',
+    danger: true,
+  });
+  if (ok) goHome();
+  else if (wasRunning && activeSequencer === seq) {
+    seq.resume();
+    setPauseButton($('dict-pause'), false);
+  }
+}
+
+// ---------- Поделиться и открыть по коду ----------
+
+function settingsSummary(s) {
+  return `пауза ${s.delay} с${s.repeatTwice ? ', повтор дважды' : ''}, на проверке ${s.checkDelay} с`;
+}
+
+function openShare(entry) {
+  const code = Share.encode(entry, settings);
+  const link = Share.link(code);
+  $('share-summary').textContent = `${entryTitle(entry)} · ${lettersWord(entry.letters.length)} · ${settingsSummary(settings)}`;
+  $('share-link').value = link;
+  $('share-code').value = code;
+  $('share-status').textContent = '';
+  const native = $('share-native');
+  native.hidden = !navigator.share;
+  native.onclick = () => {
+    navigator.share({ title: 'Буквенный диктант', text: `Диктант «${entryTitle(entry)}»`, url: link }).catch(() => {});
+  };
+  showDialog($('share-dialog'));
+}
+
+async function copyField(id) {
+  const field = $(id);
+  try {
+    await navigator.clipboard.writeText(field.value);
+  } catch {
+    field.select();
+    document.execCommand('copy');
+  }
+  $('share-status').textContent = id === 'share-link' ? 'Ссылка скопирована' : 'Код скопирован';
+}
+
+let importData = null;
+
+function onImportInput() {
+  const text = $('import-code').value;
+  importData = null;
+  $('import-error').textContent = '';
+  try {
+    if (text.trim()) importData = Share.decode(text);
+  } catch (error) {
+    $('import-error').textContent = error.message;
+  }
+  const ok = Boolean(importData);
+  $('import-preview').hidden = !ok;
+  $('import-save').disabled = !ok;
+  $('import-start').disabled = !ok;
+  if (!ok) return;
+  const entry = importedEntry(importData);
+  $('import-title').textContent = entryTitle(entry);
+  const parts = [lettersWord(entry.letters.length), entry.letters.join(' ')];
+  if (CASE_MODES[entry.caseMode]) parts.splice(1, 0, CASE_MODES[entry.caseMode]);
+  $('import-meta').textContent = parts.join(' · ');
+  $('import-settings').textContent = settingsSummary(importData.settings);
+}
+
+function importedEntry(data) {
+  const order = ALPHABETS[data.alphabet].letters.map((l) => l[0]);
+  const indexes = data.letters.map((u) => order.indexOf(u));
+  return {
+    id: newId(),
+    name: data.name,
+    alphabet: data.alphabet,
+    range: [order[Math.min(...indexes)], order[Math.max(...indexes)]],
+    excluded: [],
+    letters: data.letters,
+    caseMode: data.caseMode,
+    cases: data.cases,
+    createdAt: Date.now(),
+    lastRunAt: Date.now(),
+    runs: 0,
+  };
+}
+
+async function openImport(prefill = '') {
+  $('import-code').value = prefill;
+  onImportInput();
+  const action = await showDialog($('import-dialog'));
+  if (!importData || (action !== 'save' && action !== 'start')) return;
+  if ($('import-apply-settings').checked) {
+    Object.assign(settings, importData.settings);
+    saveSettings();
+    renderSettings();
+  }
+  const entry = importedEntry(importData);
+  if (action === 'start') {
+    startDictation(entry);
+  } else {
+    Storage.upsert(entry);
+    renderHistory();
+  }
+}
+
+// Ссылка вида …/#d=КОД открывает окно импорта; адрес очищаем, чтобы не открывалось повторно.
+function importFromHash() {
+  if (!location.hash.startsWith('#d=')) return;
+  const code = location.hash.slice(3);
+  history.replaceState(null, '', location.pathname + location.search);
+  openImport(code);
+}
+
 // ---------- Подключение обработчиков ----------
 
 function bindEvents() {
@@ -822,6 +972,17 @@ function bindEvents() {
     renderChips();
   });
   $('start-button').addEventListener('click', startNewDictation);
+  $('import-button').addEventListener('click', () => openImport());
+  $('import-code').addEventListener('input', onImportInput);
+  for (const btn of document.querySelectorAll('[data-copy]')) {
+    btn.addEventListener('click', () => copyField(btn.dataset.copy));
+  }
+  // Клик по затемнённому фону закрывает окно.
+  for (const dialog of document.querySelectorAll('dialog')) {
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) dialog.close('');
+    });
+  }
 
   const bindRange = (id, key, parse) => {
     $(id).addEventListener('input', () => {
@@ -883,9 +1044,7 @@ function bindEvents() {
     seq.start(seq.index);
     setPauseButton($('dict-pause'), false);
   });
-  $('dict-stop').addEventListener('click', () => {
-    if (confirm('Прервать диктант?')) goHome();
-  });
+  $('dict-stop').addEventListener('click', stopDictationAsk);
   $('dict-check').addEventListener('click', () => openCheck(currentEntry));
   $('dict-home').addEventListener('click', goHome);
 
@@ -900,6 +1059,7 @@ function bindEvents() {
 
   // Пробел — пауза, стрелки — листание на проверке.
   document.addEventListener('keydown', (e) => {
+    if (document.querySelector('dialog[open]')) return;
     if (e.target.closest('input, select, textarea, button')) return;
     if (!$('screen-dictation').hidden && e.code === 'Space') {
       e.preventDefault();
@@ -924,6 +1084,8 @@ function init() {
   renderHistory();
   // При перезагрузке посреди диктанта возвращаемся на главную.
   if (history.state) history.replaceState(null, '');
+  importFromHash();
+  window.addEventListener('hashchange', importFromHash);
 }
 
 init();

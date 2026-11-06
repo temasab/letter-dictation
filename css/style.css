@@ -89,7 +89,7 @@ h2 { font-size: 21px; }
 .field { margin-bottom: 18px; }
 .field-label, .field > label { display: block; margin-bottom: 8px; font-weight: 600; }
 
-select, input[type='text'], input[type='number'] {
+select, input[type='text'], input[type='number'], textarea {
   font: inherit;
   padding: 10px 12px;
   border: 1px solid var(--line);
@@ -118,6 +118,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 
 .primary { background: var(--primary); color: #fff; font-weight: 600; }
 .primary:hover:not(:disabled) { background: var(--primary-dark); }
+.primary.danger { background: var(--danger); }
+.primary.danger:hover:not(:disabled) { background: #b8344b; }
 .secondary { background: var(--primary-soft); color: var(--primary-dark); font-weight: 600; }
 .secondary:hover:not(:disabled) { background: #d8e3fa; }
 .ghost { background: transparent; color: var(--muted); }
@@ -203,6 +205,63 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .settings summary::after { content: '▾'; color: var(--muted); margin-left: auto; transition: transform 0.2s; }
 .settings[open] summary { margin-bottom: 18px; }
 .settings[open] summary::after { transform: rotate(180deg); }
+
+.settings-group { padding: 16px 0 2px; border-top: 1px solid var(--line); }
+.settings-group:first-of-type { border-top: none; padding-top: 0; }
+.settings-group h3 {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary-dark);
+}
+.settings-group select { width: 100%; }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.card-header button { font-size: 15px; padding: 8px 14px; min-height: 40px; }
+
+/* ---------- Окна ---------- */
+
+.dialog {
+  border: none;
+  border-radius: 20px;
+  padding: 0;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  color: var(--text);
+  box-shadow: 0 20px 60px rgb(31 42 68 / 30%);
+}
+.dialog::backdrop { background: rgb(31 42 68 / 45%); }
+.dialog[open] { animation: dialog-in 0.15s ease-out; }
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.dialog form { padding: 22px; }
+.dialog h2 { margin-bottom: 10px; }
+.dialog p { margin: 0 0 16px; }
+.dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.copy-row { display: flex; gap: 8px; }
+.copy-row input { flex: 1; min-width: 0; font-size: 15px; }
+.copy-status { color: var(--ok); font-weight: 600; min-height: 1.45em; margin: 0 0 4px !important; }
+textarea { width: 100%; resize: vertical; font-size: 15px; font-family: ui-monospace, Menlo, monospace; }
+.error { color: var(--danger); min-height: 1.45em; margin: 0 0 8px !important; }
+.import-preview {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 12px 14px 2px;
+  margin-bottom: 8px;
+}
+.import-preview .history-meta { margin-bottom: 10px; overflow-wrap: anywhere; }
+.import-preview .checkbox { margin-bottom: 12px; font-size: 15px; align-items: flex-start; }
 
 /* ---------- История ---------- */
 
