@@ -254,6 +254,19 @@ function applyPropisFont(alphabetId) {
   root.setProperty('--propis-upper-scale', String((font.upperSize || font.size) / font.size));
 }
 
+// Браузер скачивает шрифт только при первом показе буквы, и она «перескакивает» с запасного
+// шрифта на пропись. Поэтому шрифты прописи обоих алфавитов загружаем заранее.
+function preloadPropisFonts() {
+  if (!document.fonts?.load) return;
+  for (const id of ['ru', 'en']) {
+    const font = cursiveFont(id);
+    const sample = ALPHABETS[id].letters.map(([upper, lower]) => upper + lower).join('');
+    for (const family of new Set([font.family, font.upperFamily].filter(Boolean))) {
+      document.fonts.load(`40px ${family}`, sample).catch(() => {});
+    }
+  }
+}
+
 function cursiveFont(alphabetId) {
   const fonts = CURSIVE_FONTS[alphabetId];
   return fonts.find((f) => f.id === settings.font[alphabetId]) || fonts[0];
@@ -685,6 +698,8 @@ function startDictation(entry) {
   $('dictation-finished').hidden = true;
   $('done-text').textContent = training ? 'Тренировка окончена!' : 'Диктант окончен!';
   $('dict-check').hidden = training;
+  $('train-prev').hidden = !training;
+  $('train-prev').disabled = true;
   $('dict-again').hidden = !training;
   if (training) applyPropisFont(entry.alphabet);
   // В тренировке после паузы на письмо круг сменяется правильной буквой.
@@ -722,6 +737,8 @@ function startDictation(entry) {
     },
     after: training
       ? async (i, run) => {
+        await document.fonts?.ready;
+        if (!seq.alive(run)) return false;
         showCopybookLetter($('train-copybook'), entry, i);
         revealing = true;
         setRevealing(true);
@@ -735,6 +752,7 @@ function startDictation(entry) {
       : null,
     onStep: (i) => {
       inIntro = false;
+      $('train-prev').disabled = i === 0;
       revealing = false;
       setRevealing(false);
       $('dictation-counter').innerHTML = `<span class="counter-num">${i + 1}</span><span class="counter-total">из ${total}</span>`;
@@ -1183,6 +1201,7 @@ function bindEvents() {
     $(`font-${id}`).addEventListener('change', () => {
       settings.font[id] = $(`font-${id}`).value;
       saveSettings();
+      preloadPropisFonts();
     });
   }
   for (const btn of document.querySelectorAll('[data-preview-voice]')) {
@@ -1199,6 +1218,12 @@ function bindEvents() {
   $('dict-stop').addEventListener('click', stopDictationAsk);
   $('dict-check').addEventListener('click', () => openCheck(currentEntry));
   $('dict-again').addEventListener('click', () => startDictation(currentEntry));
+  $('train-prev').addEventListener('click', () => {
+    const seq = activeSequencer;
+    if (!seq || seq.finished || seq.index === 0) return;
+    seq.start(seq.index - 1);
+    setPauseButton($('dict-pause'), false);
+  });
   $('train-next').addEventListener('click', () => {
     const seq = activeSequencer;
     if (!seq || seq.finished) return;
@@ -1235,6 +1260,7 @@ function bindEvents() {
 }
 
 function init() {
+  preloadPropisFonts();
   mountCopybook($('check-copybook'), 'check');
   mountCopybook($('train-copybook'), 'train');
   $('speech-warning').hidden = Speech.supported || settings.voiceSource === 'recorded';
