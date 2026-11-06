@@ -436,6 +436,35 @@ function dictationSize(available) {
   return settings.limitEnabled ? Math.min(settings.limitCount, available) : available;
 }
 
+// Название нового диктанта: показывается в заголовке карточки вместо «Новый диктант».
+let newDictationName = '';
+
+function renderNewTitle() {
+  $('new-title').textContent = newDictationName || 'Новый диктант';
+  $('new-title').classList.toggle('named', Boolean(newDictationName));
+  $('rename-button').setAttribute('aria-label', newDictationName ? 'Изменить название' : 'Задать название');
+}
+
+function startRename() {
+  const input = $('dictation-name');
+  input.value = newDictationName;
+  $('new-title').hidden = true;
+  $('rename-button').hidden = true;
+  input.hidden = false;
+  input.focus();
+  input.select();
+}
+
+function finishRename(save) {
+  const input = $('dictation-name');
+  if (input.hidden) return;
+  if (save) newDictationName = input.value.trim();
+  input.hidden = true;
+  $('new-title').hidden = false;
+  $('rename-button').hidden = false;
+  renderNewTitle();
+}
+
 function renderSetup() {
   renderAlphabetSwitch();
   renderPickMode();
@@ -618,8 +647,9 @@ function startNewDictation(mode = 'dictation') {
   const letters = shuffle(selectedLetters()).slice(0, dictationSize(selectedLetters().length));
   if (!letters.length) return;
   const id = settings.alphabet;
-  const name = $('dictation-name').value.trim();
-  $('dictation-name').value = '';
+  const name = newDictationName;
+  newDictationName = '';
+  renderNewTitle();
   startDictation({
     id: newId(),
     name,
@@ -1073,6 +1103,13 @@ function bindEvents() {
   $('start-button').addEventListener('click', () => startNewDictation('dictation'));
   $('train-button').addEventListener('click', () => startNewDictation('training'));
   $('import-button').addEventListener('click', () => openImport());
+  $('rename-button').addEventListener('click', startRename);
+  $('new-title').addEventListener('click', startRename);
+  $('dictation-name').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') finishRename(true);
+    else if (e.key === 'Escape') finishRename(false);
+  });
+  $('dictation-name').addEventListener('blur', () => finishRename(true));
   $('settings-button').addEventListener('click', openSettings);
   for (const btn of document.querySelectorAll('#settings-dialog [role="tab"]')) {
     btn.addEventListener('click', () => selectSettingsTab(btn.dataset.tab));

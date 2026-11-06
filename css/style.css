@@ -79,6 +79,13 @@ h2 { font-size: 21px; }
 }
 .card > h2 { margin-bottom: 14px; }
 
+.title-edit { display: flex; align-items: center; gap: 4px; margin-bottom: 14px; min-height: 44px; }
+.title-edit h2 { cursor: pointer; overflow-wrap: anywhere; }
+.title-edit h2.named { color: var(--primary-dark); }
+.title-edit input { flex: 1; font-size: 21px; font-weight: 700; padding: 6px 10px; }
+.title-edit .icon-button { flex: none; font-size: 18px; opacity: 0.75; }
+.title-edit .icon-button:hover { opacity: 1; }
+
 .warning {
   background: #fff4e0;
   border: 1px solid #f5d39a;

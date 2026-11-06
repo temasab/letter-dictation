@@ -27,7 +27,14 @@
       </div>
 
       <section class="card">
-        <h2>Новый диктант</h2>
+        <!-- Название задаётся карандашом: заголовок превращается в поле ввода -->
+        <div class="title-edit">
+          <h2 id="new-title" title="Задать название">Новый диктант</h2>
+          <input id="dictation-name" type="text" maxlength="60" placeholder="Название, например: урок 12"
+                 aria-label="Название диктанта" hidden>
+          <button type="button" id="rename-button" class="ghost icon-button" aria-label="Задать название"
+                  title="Задать название">✏️</button>
+        </div>
 
         <div class="field">
           <span class="field-label">Алфавит</span>
@@ -51,11 +58,6 @@
               <button type="button" id="reset-excluded" class="link-button">Вернуть исключённые</button>
             </span>
           </div>
-        </div>
-
-        <div class="field">
-          <label for="dictation-name" class="field-label">Название (необязательно)</label>
-          <input id="dictation-name" type="text" maxlength="60" placeholder="Например: урок 12">
         </div>
 
         <div class="start-buttons">
