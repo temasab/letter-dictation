@@ -8,7 +8,8 @@ const DEFAULT_SETTINGS = {
   revealDelay: 4,
   rate: 0.8,
   voice: { ru: '', en: '' },
-  font: { ru: 'print-caps', en: 'print-caps' },
+  font: { ru: 'arial', en: 'arial' },
+  fontDefaultsVersion: 2,
   caseMode: 'none',
   voiceSource: 'recorded',
   limitEnabled: false,
@@ -23,6 +24,13 @@ const RING_LENGTH = 2 * Math.PI * 54;
 const $ = (id) => document.getElementById(id);
 
 let settings = Storage.loadSettings(DEFAULT_SETTINGS);
+// Однократный переход на новый шрифт по умолчанию (Arial) для тех, у кого сохранён прежний выбор.
+// Версию смотрим в сохранённых данных: в settings она уже подставлена из значений по умолчанию.
+if (Storage.read(Storage.SETTINGS_KEY, {}).fontDefaultsVersion !== DEFAULT_SETTINGS.fontDefaultsVersion) {
+  settings.font = { ...DEFAULT_SETTINGS.font };
+  settings.fontDefaultsVersion = DEFAULT_SETTINGS.fontDefaultsVersion;
+  Storage.saveSettings(settings);
+}
 
 // ---------- Последовательное озвучивание с паузами ----------
 
