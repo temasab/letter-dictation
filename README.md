@@ -36,25 +36,9 @@ python3 -m http.server 8000
 
 ## Публикация на GitHub Pages
 
-1. Создайте на github.com новый **публичный** репозиторий, например `letter-dictation`
-   (без README — он уже есть здесь).
-2. В папке проекта:
-
-   ```sh
-   git init -b main
-   git add .
-   git commit -m "Буквенный диктант"
-   git remote add origin https://github.com/<логин>/letter-dictation.git
-   git push -u origin main
-   ```
-
-3. В репозитории: **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
-   ветка `main`, папка `/ (root)` → **Save**.
-4. Через 1–2 минуты сайт будет доступен по адресу `https://<логин>.github.io/letter-dictation/`.
-
-Обновление сайта — новый `git commit` и `git push`.
-
-Файл `.nojekyll` отключает обработку Jekyll — сайт отдаётся как есть.
+Сайт публикуется автоматически workflow `.github/workflows/pages.yml` при каждом `git push` в ветку
+`main` (в настройках репозитория: Settings → Pages → Source: GitHub Actions). Ход публикации — во
+вкладке Actions репозитория; через 1–2 минуты после успешного запуска изменения видны на сайте.
 
 ## Структура
 
