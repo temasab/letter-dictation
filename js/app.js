@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS = {
   voiceSource: 'recorded',
   limitEnabled: false,
   limitCount: 10,
+  settingsTab: 'dictation',
 };
 
 const REPEAT_GAP_MS = 1500;
@@ -838,6 +839,32 @@ async function stopDictationAsk() {
   }
 }
 
+// ---------- Окно настроек с закладками ----------
+
+const SETTINGS_TABS = ['dictation', 'check', 'voice', 'font'];
+
+function selectSettingsTab(key) {
+  if (!SETTINGS_TABS.includes(key)) key = SETTINGS_TABS[0];
+  for (const btn of document.querySelectorAll('#settings-dialog [role="tab"]')) {
+    const active = btn.dataset.tab === key;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', String(active));
+    btn.tabIndex = active ? 0 : -1;
+  }
+  for (const panel of document.querySelectorAll('#settings-dialog .tab-panel')) {
+    panel.hidden = panel.id !== `tab-${key}`;
+  }
+  settings.settingsTab = key;
+  saveSettings();
+}
+
+async function openSettings() {
+  renderSettings();
+  selectSettingsTab(settings.settingsTab);
+  await showDialog($('settings-dialog'));
+  stopPreview();
+}
+
 // ---------- Поделиться и открыть по коду ----------
 
 function settingsSummary(s) {
@@ -973,6 +1000,20 @@ function bindEvents() {
   });
   $('start-button').addEventListener('click', startNewDictation);
   $('import-button').addEventListener('click', () => openImport());
+  $('settings-button').addEventListener('click', openSettings);
+  for (const btn of document.querySelectorAll('#settings-dialog [role="tab"]')) {
+    btn.addEventListener('click', () => selectSettingsTab(btn.dataset.tab));
+  }
+  // Стрелки влево/вправо переключают закладки.
+  document.querySelector('#settings-dialog [role="tablist"]').addEventListener('keydown', (e) => {
+    const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const i = SETTINGS_TABS.indexOf(settings.settingsTab);
+    const next = SETTINGS_TABS[(i + step + SETTINGS_TABS.length) % SETTINGS_TABS.length];
+    selectSettingsTab(next);
+    $(`tab-btn-${next}`).focus();
+  });
   $('import-code').addEventListener('input', onImportInput);
   for (const btn of document.querySelectorAll('[data-copy]')) {
     btn.addEventListener('click', () => copyField(btn.dataset.copy));

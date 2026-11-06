@@ -15,7 +15,10 @@
     <!-- Экран настройки диктанта -->
     <section id="screen-setup" class="screen">
       <header class="app-header">
-        <h1>Буквенный диктант</h1>
+        <div class="app-title">
+          <h1>Буквенный диктант</h1>
+          <button type="button" id="settings-button" class="settings-button" aria-label="Настройки" title="Настройки">⚙️</button>
+        </div>
         <p class="subtitle">Голос называет буквы — ребёнок пишет их в тетради, потом проверяем вместе.</p>
       </header>
 
@@ -57,107 +60,6 @@
 
         <button type="button" id="start-button" class="primary big">Начать диктант</button>
       </section>
-
-      <details class="card settings" id="settings">
-        <summary><h2>Настройки</h2></summary>
-
-        <section class="settings-group">
-          <h3>Диктант</h3>
-
-          <div class="field">
-            <label for="delay">Пауза между буквами: <output id="delay-out"></output></label>
-            <input id="delay" type="range" min="3" max="30" step="1">
-          </div>
-
-          <label class="checkbox">
-            <input id="repeat-twice" type="checkbox">
-            Повторять каждую букву дважды
-          </label>
-
-          <div class="field">
-            <label for="case-mode">Заглавная или строчная</label>
-            <select id="case-mode">
-              <option value="none">Не называть</option>
-              <option value="upper">Все заглавные</option>
-              <option value="lower">Все строчные</option>
-              <option value="mixed">Вперемешку</option>
-            </select>
-          </div>
-
-          <label class="checkbox">
-            <input id="limit-enabled" type="checkbox">
-            Ограничить количество букв
-          </label>
-          <div class="field limit-field">
-            <label for="limit-count">Букв в диктанте</label>
-            <input id="limit-count" type="number" min="1" max="33" step="1" inputmode="numeric">
-            <p class="hint">Случайные буквы из выбранных на главном экране, без повторов.</p>
-          </div>
-        </section>
-
-        <section class="settings-group">
-          <h3>Проверка</h3>
-
-          <div class="field">
-            <label for="check-delay">Пауза между буквами: <output id="check-delay-out"></output></label>
-            <input id="check-delay" type="range" min="1" max="15" step="1">
-          </div>
-        </section>
-
-        <section class="settings-group">
-          <h3>Голос</h3>
-
-          <div class="field">
-            <label for="voice-source">Чем озвучивать</label>
-            <select id="voice-source">
-              <option value="recorded">Записанный голос</option>
-              <option value="browser">Голос браузера</option>
-            </select>
-          </div>
-
-          <div id="browser-voice-settings">
-            <div class="field">
-              <label for="rate">Скорость речи: <output id="rate-out"></output></label>
-              <input id="rate" type="range" min="0.5" max="1.3" step="0.1">
-            </div>
-
-            <div class="field">
-              <label for="voice-ru">Голос для русских букв</label>
-              <select id="voice-ru"></select>
-            </div>
-
-            <div class="field">
-              <label for="voice-en">Голос для английских букв</label>
-              <select id="voice-en"></select>
-            </div>
-
-            <p class="hint">Системные голоса на разных устройствах звучат по‑разному,
-              а в некоторых браузерах (например, Firefox) после каждой фразы слышен щелчок.</p>
-          </div>
-
-          <div class="field">
-            <span class="field-label">Послушать весь алфавит</span>
-            <div class="inline">
-              <button type="button" class="secondary" data-preview-voice="ru">▶ Русский</button>
-              <button type="button" class="secondary" data-preview-voice="en">▶ Английский</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="settings-group">
-          <h3>Пропись на проверке</h3>
-
-          <div class="field">
-            <label for="font-ru">Русские буквы</label>
-            <select id="font-ru"></select>
-          </div>
-
-          <div class="field">
-            <label for="font-en">Английские буквы</label>
-            <select id="font-en"></select>
-          </div>
-        </section>
-      </details>
 
       <section class="card">
         <div class="card-header">
@@ -244,6 +146,114 @@
     </section>
 
   </main>
+
+  <!-- Настройки: окно с закладками, изменения применяются сразу -->
+  <dialog id="settings-dialog" class="dialog settings-dialog" aria-labelledby="settings-title">
+    <form method="dialog">
+      <div class="dialog-header">
+        <h2 id="settings-title">Настройки</h2>
+        <button value="close" class="ghost icon-button" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Разделы настроек">
+        <button type="button" role="tab" id="tab-btn-dictation" data-tab="dictation" aria-controls="tab-dictation">Диктант</button>
+        <button type="button" role="tab" id="tab-btn-check" data-tab="check" aria-controls="tab-check">Проверка</button>
+        <button type="button" role="tab" id="tab-btn-voice" data-tab="voice" aria-controls="tab-voice">Голос</button>
+        <button type="button" role="tab" id="tab-btn-font" data-tab="font" aria-controls="tab-font">Пропись</button>
+      </div>
+      <div class="tab-panels">
+        <section class="tab-panel" id="tab-dictation" role="tabpanel" aria-labelledby="tab-btn-dictation">
+          <div class="field">
+            <label for="delay">Пауза между буквами: <output id="delay-out"></output></label>
+            <input id="delay" type="range" min="3" max="30" step="1">
+          </div>
+
+          <label class="checkbox">
+            <input id="repeat-twice" type="checkbox">
+            Повторять каждую букву дважды
+          </label>
+
+          <div class="field">
+            <label for="case-mode">Заглавная или строчная</label>
+            <select id="case-mode">
+              <option value="none">Не называть</option>
+              <option value="upper">Все заглавные</option>
+              <option value="lower">Все строчные</option>
+              <option value="mixed">Вперемешку</option>
+            </select>
+          </div>
+
+          <label class="checkbox">
+            <input id="limit-enabled" type="checkbox">
+            Ограничить количество букв
+          </label>
+          <div class="field limit-field">
+            <label for="limit-count">Букв в диктанте</label>
+            <input id="limit-count" type="number" min="1" max="33" step="1" inputmode="numeric">
+            <p class="hint">Случайные буквы из выбранных на главном экране, без повторов.</p>
+          </div>
+        </section>
+        <section class="tab-panel" id="tab-check" role="tabpanel" aria-labelledby="tab-btn-check">
+          <p class="hint panel-hint">Проверка идёт по одной букве: голос называет её и показывает прописью.</p>
+          <div class="field">
+            <label for="check-delay">Пауза между буквами: <output id="check-delay-out"></output></label>
+            <input id="check-delay" type="range" min="1" max="15" step="1">
+          </div>
+        </section>
+        <section class="tab-panel" id="tab-voice" role="tabpanel" aria-labelledby="tab-btn-voice">
+          <div class="field">
+            <label for="voice-source">Чем озвучивать</label>
+            <select id="voice-source">
+              <option value="recorded">Записанный голос</option>
+              <option value="browser">Голос браузера</option>
+            </select>
+          </div>
+
+          <div id="browser-voice-settings">
+            <div class="field">
+              <label for="rate">Скорость речи: <output id="rate-out"></output></label>
+              <input id="rate" type="range" min="0.5" max="1.3" step="0.1">
+            </div>
+
+            <div class="field">
+              <label for="voice-ru">Голос для русских букв</label>
+              <select id="voice-ru"></select>
+            </div>
+
+            <div class="field">
+              <label for="voice-en">Голос для английских букв</label>
+              <select id="voice-en"></select>
+            </div>
+
+            <p class="hint">Системные голоса на разных устройствах звучат по‑разному,
+              а в некоторых браузерах (например, Firefox) после каждой фразы слышен щелчок.</p>
+          </div>
+
+          <div class="field">
+            <span class="field-label">Послушать весь алфавит</span>
+            <div class="inline">
+              <button type="button" class="secondary" data-preview-voice="ru">▶ Русский</button>
+              <button type="button" class="secondary" data-preview-voice="en">▶ Английский</button>
+            </div>
+          </div>
+        </section>
+        <section class="tab-panel" id="tab-font" role="tabpanel" aria-labelledby="tab-btn-font">
+          <p class="hint panel-hint">Каким почерком буквы показываются на экране проверки.</p>
+          <div class="field">
+            <label for="font-ru">Русские буквы</label>
+            <select id="font-ru"></select>
+          </div>
+
+          <div class="field">
+            <label for="font-en">Английские буквы</label>
+            <select id="font-en"></select>
+          </div>
+        </section>
+      </div>
+      <div class="dialog-actions">
+        <button value="close" class="primary">Готово</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- Подтверждение действия (вместо системного confirm) -->
   <dialog id="confirm-dialog" class="dialog">
