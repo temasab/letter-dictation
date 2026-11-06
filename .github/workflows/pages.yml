@@ -23,6 +23,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
+      # Версия в ссылках на стили и скрипты, чтобы браузер не брал из кэша старые файлы.
+      - name: Проставить версию файлов
+        run: sed -i "s/?v=dev/?v=${GITHUB_SHA::8}/g" index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
